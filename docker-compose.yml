@@ -3,7 +3,7 @@ services:
         build: srcs/requirements/nginx/.
         container_name: nginx
         ports:
-            - "443:443"
+            - "80:80"
         volumes:
             - ./web:/var/www/html
     wordpress:
@@ -11,5 +11,3 @@ services:
         container_name: wp-php
         volumes:
             - ./web:/var/www/html
-
-   
