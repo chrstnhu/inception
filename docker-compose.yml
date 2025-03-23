@@ -2,12 +2,25 @@ services:
     nginx:
         build: srcs/requirements/nginx/.
         container_name: nginx
+        image: nginx
         ports:
-            - "80:80"
+            - "443:443"
         volumes:
             - ./web:/var/www/html
+        restart: unless-stopped
+        
     wordpress:
         build: srcs/requirements/wordpress/.
         container_name: wp-php
+        image: wordpress
         volumes:
-            - ./web:/var/www/html
+            - ./web:/var/www/wordpress
+        restart: unless-stopped
+
+    mariadb:
+        build: srcs/requirements/mariadb/.
+        container_name: mariadb
+        image: mariadb
+        volumes:
+            - ./web:/var/lib/mysql
+        restart: unless-stopped
