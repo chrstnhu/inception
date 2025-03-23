@@ -17,4 +17,6 @@ fclean: clean
 	echo "successfully removed all contents from /home/chrhu/data/mariadb/"; \
 	fi;
 
-.PHONY: all clean fclean re ls 
+re : fclean all
+
+.PHONY: all clean fclean re
