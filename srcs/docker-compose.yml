@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+    mariadb:
+        build: 
+            context: ./srcs/requirements/mariadb
+            dockerfile : Dockerfile        
+        image: mariadb
+        container_name: mariadb
+        # Utilisation des variables .env
+        env_file : 
+            - .env
+        environment:
+            - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
+            - MYSQL_PASSWORD_FILE=/run/secrets/db_password
+            - MYSQL_DATABASE=${MYSQL_DATABASE}
+            - MYSQL_USER=${MYSQL_USER}
+        volumes:
+            - ${DB_VOLUME}:/var/lib/mysql
+        secrets :
+            - db_password
+            - db_root_password
+        networks:
+            - inception
+        expose:
+            - "3306"
+        restart: always
+
+    wordpress:
+        build: 
+            context : ./srcs/requirements/wordpress
+            dockerfile : Dockerfile
+        image: wordpress
+        container_name: wordpress
+        # Utilisation des variables .env
+        env_file : .env
+        environment:
+            - WORDPRESS_DB_PASSWORD_FILE=/run/secrets/db_password
+            - WORDPRESS_DB_NAME=${MYSQL_DATABASE}
+            - WORDPRESS_DB_USER=${MYSQL_USER}
+        volumes:
+            - ${WP_VOLUME}:/var/www/html
+        secrets :
+            - wp_admin_password
+            - wp_guest_password
+        depends_on:
+            - mariadb
+        networks:
+            - inception
+        expose :
+            - "9000"
+        restart: always
+
+    nginx:
+        build: 
+            context : ./srcs/requirements/nginx
+            dockerfile : Dockerfile
+        image: nginx
+        container_name: nginx
+        env_file : .env
+        volumes:
+            - ${WP_VOLUME}:/var/www/html
+        depends_on:
+            - wordpress
+        networks:
+            - inception
+        ports:
+            - "443:443"
+        restart: always
+        
+
+networks:
+    inception :
+        driver: bridge
+
+volumes:
+    mariadb_data:
+
+    wordpress_data:
+
+secrets:
+  db_root_password:
+    file: ./secrets/db_root_password.txt 
+  db_password:
+    file: ./secrets/db_password.txt
+  wp_admin_password:
+    file: ./secrets/wp_admin_password.txt  
+  wp_guest_password:
+    file: ./secrets/wp_guest_password.txt  
