@@ -1,0 +1,13 @@
+# # Prevent secrets from entering the build context
+# ../../../secrets/
+
+# Unused file
+# .git
+# .gitignore
+
+# Log files
+# *.log
+
+# Temporary or swap files
+# *.swp
+# *.tmp

@@ -1,89 +1,101 @@
-version: '3.8'
-
 services:
-    mariadb:
-        build: 
-            context: ./srcs/requirements/mariadb
-            dockerfile : Dockerfile        
-        image: mariadb
-        container_name: mariadb
-        # Utilisation des variables .env
-        env_file : 
-            - .env
-        environment:
-            - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_password
-            - MYSQL_PASSWORD_FILE=/run/secrets/db_password
-            - MYSQL_DATABASE=${MYSQL_DATABASE}
-            - MYSQL_USER=${MYSQL_USER}
-        volumes:
-            - ${DB_VOLUME}:/var/lib/mysql
-        secrets :
-            - db_password
-            - db_root_password
-        networks:
-            - inception
-        expose:
-            - "3306"
-        restart: always
+  mariadb:
+    container_name: mariadb
+    image: mariadb
+    networks:
+      - inception
+    build:
+      context: requirements/mariadb
+      dockerfile: Dockerfile
+    env_file: .env
+    secrets:
+      - db_root_password
+      - db_password
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    restart: always
+    expose:
+      - "3306"
 
-    wordpress:
-        build: 
-            context : ./srcs/requirements/wordpress
-            dockerfile : Dockerfile
-        image: wordpress
-        container_name: wordpress
-        # Utilisation des variables .env
-        env_file : .env
-        environment:
-            - WORDPRESS_DB_PASSWORD_FILE=/run/secrets/db_password
-            - WORDPRESS_DB_NAME=${MYSQL_DATABASE}
-            - WORDPRESS_DB_USER=${MYSQL_USER}
-        volumes:
-            - ${WP_VOLUME}:/var/www/html
-        secrets :
-            - wp_admin_password
-            - wp_guest_password
-        depends_on:
-            - mariadb
-        networks:
-            - inception
-        expose :
-            - "9000"
-        restart: always
+  wordpress:
+    container_name: wordpress
+    image: wordpress
+    env_file: .env
+    secrets:
+      - db_password
+      - wp_adm_user
+      - wp_adm_mail
+      - wp_adm_password
+      - wp_guest_user
+      - wp_guest_mail
+      - wp_guest_password
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - inception
+    build:
+      context: requirements/wordpress
+      dockerfile: Dockerfile
+    depends_on:
+      - mariadb
+    restart: always
+    expose:
+      - "9000"
 
-    nginx:
-        build: 
-            context : ./srcs/requirements/nginx
-            dockerfile : Dockerfile
-        image: nginx
-        container_name: nginx
-        env_file : .env
-        volumes:
-            - ${WP_VOLUME}:/var/www/html
-        depends_on:
-            - wordpress
-        networks:
-            - inception
-        ports:
-            - "443:443"
-        restart: always
-        
-
-networks:
-    inception :
-        driver: bridge
+  nginx:
+    container_name: nginx
+    image: nginx
+    volumes:
+      - wordpress_data:/var/www/html
+    networks:
+      - inception
+    depends_on:
+      - wordpress
+    build:
+      context: requirements/nginx
+      dockerfile: Dockerfile
+    env_file: .env
+    restart: always
+    ports:
+      - "443:443"
 
 volumes:
-    mariadb_data:
-
-    wordpress_data:
+  wordpress_data:
+    name: wordpress_data
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: '/home/chrhu/data/wordpress'
+  mariadb_data:
+    name: mariadb_data
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: '/home/chrhu/data/mariadb'
+  
+networks:
+  inception:
+    name: "inception"
+    driver: "bridge"
 
 secrets:
-  db_root_password:
-    file: ./secrets/db_root_password.txt 
   db_password:
-    file: ./secrets/db_password.txt
-  wp_admin_password:
-    file: ./secrets/wp_admin_password.txt  
+    file: ../secrets/db_password.txt
+  db_root_password:
+    file: ../secrets/db_root_password.txt
+
+  wp_adm_user:
+    file: ../secrets/wp_adm_user.txt
+  wp_adm_mail:
+    file: ../secrets/wp_adm_mail.txt
+  wp_adm_password:
+    file: ../secrets/wp_adm_password.txt
+
+  wp_guest_user:
+    file: ../secrets/wp_guest_user.txt
+  wp_guest_mail:
+    file: ../secrets/wp_guest_mail.txt
   wp_guest_password:
-    file: ./secrets/wp_guest_password.txt  
+    file: ../secrets/wp_guest_password.txt

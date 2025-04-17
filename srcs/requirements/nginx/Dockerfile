@@ -1,32 +1,42 @@
-# Base image: Utiliser une version d'Alpine (ou Debian) stable pour NGINX
-FROM alpine:latest
+# Base of image
+FROM    debian:bullseye
 
-# Ajouter des métadonnées à l'image
-LABEL maintainer="chrhu" version="V1.0" date="2025-04-10"
+# Add metadata to the image
+LABEL   author="chrhu" version="V1.0" date="2025-02-10"
 
-# Installer NGINX et OpenSSL (nécessaire pour la gestion de TLS)
-RUN apk update && apk add --no-cache \
-    nginx \
-    openssl \
-    && rm -rf /var/cache/apk/*
+# Update package lists, install dependencies
+RUN     apt update -y && apt upgrade -y \
+        && apt install -y \
+            nginx \
+            openssl \
+            vim \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
 
-# Créer les répertoires nécessaires pour NGINX
-RUN mkdir -p /etc/nginx/ssl /etc/nginx/conf.d /var/www/html
+# Expose port 443
+EXPOSE  443
 
-# Copier la configuration NGINX dans le conteneur
-COPY conf/nginx.conf /etc/nginx/nginx.conf
+# Create a directory for SSL certificates
+RUN     mkdir -p /etc/nginx/ssl
 
-COPY conf/ssl.conf /etc/nginx/conf.d/ssl.conf
+# Genereate a self-signed SSL certificats and key using OpenSSL
+RUN     openssl req -x509 -nodes -out /etc/nginx/ssl/inception.crt -keyout /etc/nginx/ssl/inception.key -subj "/C=FR/ST=IDF/L=Paris/O=42/OU=42/OU=42/CN=chrhu.42.fr/UID=chrhu"
 
-COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf  # Si besoin de config MySQL
+# Create a directory for Nginx process
+RUN     mkdir -p /var/run/nginx
 
-# Copier les certificats SSL (préalablement générés ou fournis)
-COPY certs/ssl.crt /etc/nginx/ssl/ssl.crt
+# Copy Nginx configuration files
+COPY    conf/nginx.conf /etc/nginx/nginx.conf
 
-COPY certs/ssl.key /etc/nginx/ssl/ssl.key
+COPY    conf/fastcgi-php.conf /etc/nginx/snippets
 
-# Exposer les ports nécessaires pour HTTPS
-EXPOSE 443
+# Set permission to conf files
+RUN     chmod 755 /var/www/html
 
-# Configurer le point d'entrée (entrée pour démarrer NGINX)
-CMD ["nginx", "-g", "daemon off;"]
+# Change the ownership
+RUN     chmod 755 /var/www/html \
+        && chown -R www-data:www-data /var/www/html
+
+# Run the Nginx server in the foreground
+CMD     ["nginx", "-g", "daemon off;"]
+

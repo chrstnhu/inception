@@ -1,33 +1,56 @@
-# Base image: Utiliser une version stable de Debian ou Alpine avec PHP et WordPress
-FROM php:7.4-fpm
+# Base of image
+FROM    debian:bullseye
 
-# Ajouter des métadonnées à l'image
-LABEL maintainer="chrhu" version="V1.0" date="2025-04-10"
+# Add metadata to the image
+LABEL   author="chrhu" version="V1.0" date="2025-02-10"
 
-# Installer les dépendances nécessaires pour WordPress (extensions PHP, etc.)
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    unzip \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd zip pdo pdo_mysql \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Update package lists, install dependencies
+RUN     apt update -y && apt upgrade -y \
+            && apt-get install -y wget
 
-# Télécharger et installer WordPress
-RUN curl -O https://wordpress.org/latest.tar.gz \
-    && tar -zxvf latest.tar.gz \
-    && mv wordpress/* /var/www/html/ \
-    && rmdir wordpress \
-    && rm latest.tar.gz
+# Install PHP, Mariadb for Wordpress
+RUN     apt-get install -y php7.4\
+            php7.4-fpm \
+            php7.4-mysql \
+            php7.4-cli \
+            mariadb-client \
+            vim \
+            && apt-get clean \
+            && rm -rf /var/lib/apt/lists/*
 
-# Copier le script d'installation pour la configuration de WordPress
-COPY tools/wordpress-setup.sh /usr/local/bin/wordpress-setup.sh
+# Download WP-CLI (WordPress Command Line Interface), manage WordPress installations 
+RUN     wget -O /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+        && chmod +x /usr/local/bin/wp
 
-# Donner les permissions au script et définir les bonnes permissions pour les fichiers WordPress
-RUN chmod +x /usr/local/bin/wordpress-setup.sh \
-    && chown -R www-data:www-data /var/www/html
+# Create directory and set permission for Wordpress files
+RUN     mkdir -p /var/www/html \
+        && chmod 755 /var/www/html \
+        && chown -R www-data:www-data /var/www/html
 
-# Configurer le point d'entrée du conteneur avec le script d'installation
-CMD ["/usr/local/bin/wordpress-setup.sh"]
+# Copy PHP configuration files
+COPY    ./conf/php.ini /etc/php/7.4/fpm/
+
+COPY    ./conf/www.conf /etc/php/7.4/fpm/pool.d
+
+# Set permission to conf files
+RUN     chmod 755 /etc/php/7.4/fpm/pool.d \
+        && chown -R www-data:www-data /etc/php/7.4/fpm/pool.d/www.conf
+
+# Expose port 9000
+EXPOSE  9000
+
+# Create directory for storing auto-conf script
+RUN     mkdir -p /var/wp-auto-config/
+
+# Copy auto-config
+COPY    /tools/auto-config.sh /var/wp-auto-config/
+
+# Set permission to auto-config
+RUN     chmod 755 /var/wp-auto-config/auto-config.sh \
+        && chown -R root:root /var/wp-auto-config/auto-config.sh
+
+# Set the working directory
+WORKDIR /var/www/html
+
+# Execute auto-config.sh script with bash
+ENTRYPOINT     ["bash", "/var/wp-auto-config/auto-config.sh"]
