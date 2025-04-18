@@ -14,11 +14,11 @@ echo "⏳ Waiting for MariaDB to initialize..."
 sleep 5
 
 # Creating the database if it doesn't already exist
-echo "🛠️ Setting up the database and user..."
+echo "🛠️  Setting up the database and user..."
 mysql -u root -p${DB_ROOT_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS \`${DB_DATABASE}\`;"
 mysql -u root -p${DB_ROOT_PASSWORD} -e "CREATE USER IF NOT EXISTS \`${DB_USER}\`@'%' IDENTIFIED BY '${DB_PASSWORD}';"
 mysql -u root -p${DB_ROOT_PASSWORD} -e "GRANT ALL PRIVILEGES ON \`${DB_DATABASE}\`.* TO \`${DB_USER}\`@'%' IDENTIFIED BY '${DB_PASSWORD}';"
-mysql -u root -p${DB_ROOT_PASSWORD} -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';"
+mysql -u root -p${DB_ROOT_PASSWORD} -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('${DB_ROOT_PASSWORD}');"
 mysql -u root -p${DB_ROOT_PASSWORD} -e "FLUSH PRIVILEGES;"
 
 # Shutting down MariaDB after changing
