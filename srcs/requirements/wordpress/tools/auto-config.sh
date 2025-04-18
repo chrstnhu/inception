@@ -14,12 +14,14 @@ DB_HOST=$DB_HOST
 echo "⏳ Waiting for initializing service..."
 sleep 5
 
+
 # Check required environment variables are set
 echo "🔍 Checking required environment variables..."
 if [ -z "$DB_DATABASE" ] || [ -z "$DB_USER" ] || [ -z "$DB_PASSWORD" ] || [ -z "$DB_HOST" ]; then
     echo "Error: Required environment variables are not set."
     exit 1
 fi
+
 
 # Wait for MariaDB to be ready
 echo "⌛ Waiting for MariaDB to be ready..."
@@ -39,19 +41,12 @@ if [ ! -f "/var/www/html/wp-config.php" ]; then
     rm -rf /var/www/html/*
     wp core download --path="/var/www/html" --allow-root
 
-    echo "🔎 Debug info:"
-    echo "DB_HOST: $DB_HOST"
-    echo "DB_DATABASE: $DB_DATABASE"
-    echo "DB_USER: $DB_USER"
-    echo "Trying to connect with: mysql -h$DB_HOST -u$DB_USER -p$DB_PASSWORD $DB_DATABASE"
-    mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" -e "SHOW DATABASES;"
-
-    echo "🛠️ Create wp-config.php file..."
-    wp config create --path="/var/www/html" --allow-root \
-        --dbname="$DB_DATABASE" \
-        --dbuser="$DB_USER" \
-        --dbpass="$DB_PASSWORD" \
-        --dbhost="$DB_HOST"
+    #echo "🔎 Debug info:"
+    #echo "DB_HOST: $DB_HOST"
+    #echo "DB_DATABASE: $DB_DATABASE"
+    #echo "DB_USER: $DB_USER"
+    #echo "Trying to connect with: mysql -h$DB_HOST -u$DB_USER -p$DB_PASSWORD $DB_DATABASE"
+    #mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" -e "SHOW DATABASES;"
 
     # Check if wp-config.php is created
     echo "🛠️ Trying to create wp-config.php..."
